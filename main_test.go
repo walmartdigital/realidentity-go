@@ -11,6 +11,44 @@ import (
 	"testing"
 )
 
+type fakeInfoer struct {
+	realName string
+	err      error
+}
+
+func (f fakeInfoer) getName(name string) (string, error) {
+	if f.err != nil {
+		return "", f.err
+	}
+	return f.realName, nil
+}
+
+func TestGetSuperheroRealName(t *testing.T) {
+	tt := []struct {
+		tn            string
+		fake          fakeInfoer
+		expectedName  string
+		expectedError error
+	}{
+		{
+			tn: "superhero doesn't exist",
+			fake: fakeInfoer{
+				realName: "",
+				err:      errors.New("superhero not found"),
+			},
+			expectedError: errors.New("Error querying the superhero API: superhero not found"),
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.tn, func(t *testing.T) {
+			_, err := getSuperheroRealName(tc.fake, "")
+			if !reflect.DeepEqual(err, tc.expectedError) {
+				t.Errorf("Expected error to be: %v but got: %v", tc.expectedError, err)
+			}
+		})
+	}
+}
+
 func TestIdentityHandler(t *testing.T) {
 	tt := []struct {
 		tn            string
@@ -18,7 +56,7 @@ func TestIdentityHandler(t *testing.T) {
 		expectedName  string
 		expectedError error
 	}{
-		{tn: "real name is wade wilson", superhero: "deadpool", expectedName: "Wade Wilson", expectedError: nil},
+		{tn: "real name is wade wilson", superhero: "deadpool", expectedName: `{"realname":"Wade Wilson"}`, expectedError: nil},
 		{tn: "missing value", superhero: "", expectedName: "", expectedError: errors.New("")},
 		{tn: "superhero not found", superhero: "nohero", expectedName: "", expectedError: errors.New("")},
 	}
